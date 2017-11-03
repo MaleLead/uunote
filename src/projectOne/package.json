@@ -1,0 +1,11 @@
+{
+    "name": "vue-multipage",
+    "version": "1.0.0",
+    "description": "A Vue.js project",
+    "author": "breezefeng",
+    "private": true,
+    "scripts": {
+        "dev": "node webpack.config.js dev",
+        "build": "node webpack.config.js build"
+    }
+}
