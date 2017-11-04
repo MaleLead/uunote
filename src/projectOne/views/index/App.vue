@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <h1 @click="goto">Hello，MaleH5~  点击跳转其他模块...</h1>
+    <h1 @click="goto">Hello，MaleH5~  点击跳转其他模块...000</h1>
   </div>
 </template>
 <script>
