@@ -1,39 +1,22 @@
 'use strict'
-const path = require('path')
-const ExtractTextPlugin = require('extract-text-webpack-plugin')
+
+const merge = require('webpack-merge')
+const ora = require('ora') //终端显示的转轮loading
+const rm = require('rimraf') //node环境下rm -rf的命令库
+const path = require('path') //文件路径处理库
+const chalk = require('chalk') //终端显示带颜色的文字
 const webpack = require('webpack')
-const HtmlWebpackPlugin = require('html-webpack-plugin')
     // 复制插件
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+
+const ExtractTextPlugin = require('extract-text-webpack-plugin')
+    // 入口html文件处理插件
+    // css提取插件
+    // 它将在Webpack构建期间搜索CSS资源, 将css文件最小化处理
+const OptimizeCSSPlugin = require('optimize-css-assets-webpack-plugin')
 module.exports = function(root) {
-    let assetsRoot = path.resolve(__dirname, '../dist/' + root);
-    let publickPath = 'assets';
-    // console.log(assetsRoot, '----------------------------------------')
-    // 获取loader配置文件
-    // const utils = require('./utils')(root)
-    // 获取路径 source static 配置文件
-    // const config = require('../config')(root)
-    // 获取vue-loader 配置项
-    // console.log(getEntry);
-    // 获取入口js文件
-    let entries = require('./get-entries')(root);
-    const htmls = require('./get-entries')(root, 'html')
-    const webpackConfig = {
-        entry: entries,
-        output: {
-            // 打包文件和调试服务器的根目录 
-            path: assetsRoot, //导出目录的绝对路径
-            // 输出路径以及名字
-            filename: '[name]/[name].js', //导出文件的文件名
-            // 热重载路径
-            publicPath: '/', //生产模式或开发模式下html、js等文件内部引用的公共路径
-        },
-        resolve: {
-            extensions: ['.js', '.vue', '.json'], //自动解析确定的拓展名,使导入模块时不带拓展名
-            alias: { // 创建import或require的别名
-                'vue$': 'vue/dist/vue.esm.js',
-                '@': resolve('src'),
-            },
-        },
+    const baseWebpackConfig = require('./base')(root)
+    const webpackConfig = merge(baseWebpackConfig, {
         module: {
             rules: [{
                     test: /\.vue$/,
@@ -224,53 +207,43 @@ module.exports = function(root) {
                             { loader: 'stylus-loader', options: { sourceMap: true } }
                         ]
                     })
-                },
-                {
-                    test: /\.js$/,
-                    loader: 'babel-loader',
-                    include: [resolve('src'), resolve('test')] //必须处理包含src和test文件夹
-                },
-                {
-                    test: /\.(png|jpe?g|gif|svg)(\?.*)?$/,
-                    loader: 'url-loader',
-                    options: {
-                        limit: 1024, // 门限 小于1k的资源会被转成base64格式数据
-                        name: '[name].[ext]', // 输出文件的名字
-                        outputPath: publickPath + '/images/', // 输出路径 将静态资源打包到静态资源文件夹
-                        publicPath: '/' // 处理静态资源路径问题，重新定义路径为根目录
-                    }
-                },
-                {
-                    test: /\.(mp4|webm|ogg|mp3|wav|flac|aac)(\?.*)?$/,
-                    loader: 'url-loader',
-                    options: {
-                        limit: 10000,
-                        name: '[name].[hash:7].[ext]',
-                        outputPath: publickPath + '/audio/',
-                        publicPath: '/'
-                    }
-                },
-                {
-                    test: /\.(woff2?|eot|ttf|otf|ionicons)(\?.*)?$/,
-                    loader: 'url-loader',
-                    options: {
-                        limit: 10000,
-                        name: '[name].[hash:7].[ext]',
-                        outputPath: publickPath + '/fonts/',
-                        publicPath: '/'
-                    }
                 }
             ]
         },
+        devtool: '#source-map',
         plugins: [
-            //分离出的css文件名
+            // 声明webpack全局生产环境变量
+            new webpack.DefinePlugin({
+                'process.env': {
+                    NODE_ENV: '"production"'
+                }
+            }),
+            // 文件压缩并生成source-map文件
+            new webpack.optimize.UglifyJsPlugin({ //js文件压缩插件
+                compress: {
+                    warnings: false // 不显示警告
+                },
+                sourceMap: true
+            }),
+            //压缩提取出的css，并解决ExtractTextPlugin分离出的js重复问题(多个文件引入同一css文件)
+            new OptimizeCSSPlugin({ // 压缩提取除的css文件
+                cssProcessorOptions: {
+                    safe: true
+                }
+            }),
+            new webpack.HashedModuleIdsPlugin(),
+            // 复制静态资源,将static文件内的内容复制到指定文件夹
+            new CopyWebpackPlugin([{
+                from: path.resolve(__dirname, '../src/' + root + '/assets'),
+                to: path.resolve(baseWebpackConfig.output.path, 'assets'),
+                ignore: ['.*'] //忽视.*文件
+            }]),
             new ExtractTextPlugin({
-                filename: '[name]/[name].css', 
+                filename: '[name]/[name].css', //分离出的css文件名
             }),
             new webpack.optimize.CommonsChunkPlugin({
                 name: 'common',
                 minChunks: function(module) {
-                    // any required modules inside node_modules are extracted to vendor
                     return (
                         module.resource &&
                         /\.js$/.test(module.resource) &&
@@ -281,25 +254,37 @@ module.exports = function(root) {
                 }
             }),
         ]
-    }
-    for (let name in htmls) {
-        if (!htmls.hasOwnProperty(name)) continue;
-        webpackConfig.plugins.push(new HtmlWebpackPlugin({
-                filename: name + '/'+name+'.html', //生成的html的文件名
-                template: htmls[name], //依据的模板
-                inject: true, //注入的js文件将会被放在body标签中,当值为'head'时，将被放在head标签中
-                minify: { //压缩配置
-                    removeComments: true, //删除html中的注释代码
-                    collapseWhitespace: true, //删除html中的空白符
-                    removeAttributeQuotes: true //删除html元素中属性的引号
-                },
-                // 模板文件引入的名字
-                chunks: [name, 'common'],
-                chunksSortMode: 'dependency' //按dependency的顺序引入
-            }))
-    }
-    function resolve(dir) {
-        return path.join(__dirname, '..', dir)
-    }
-    return webpackConfig;
+    })
+    process.env.NODE_ENV = 'production' //设置当前环境为production
+        // 在终端显示ora库的loading效果
+    const spinner = ora('building for production...')
+    spinner.start()
+        // 删除已编译文件
+    rm(path.join(webpackConfig.output.path, 'assets'), err => {
+        if (err) throw err
+            //在删除完成的回调函数中开始编译
+        webpack(webpackConfig, function(err, stats) {
+            spinner.stop() //停止loading
+            if (err) throw err
+                // 在编译完成的回调函数中,在终端输出编译的文件
+            process.stdout.write(stats.toString({
+                colors: true,
+                modules: false,
+                children: false,
+                chunks: false,
+                chunkModules: false
+            }) + '\n\n')
+
+            if (stats.hasErrors()) {
+                console.log(chalk.red('  Build failed with errors.\n'))
+                process.exit(1)
+            }
+
+            console.log(chalk.cyan('  Build complete.\n'))
+            console.log(chalk.yellow(
+                '  Tip: built files are meant to be served over an HTTP server.\n' +
+                '  Opening index.html over file:// won\'t work.\n'
+            ))
+        })
+    })
 }
