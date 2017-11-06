@@ -5,7 +5,7 @@
     "author": "breezefeng",
     "private": true,
     "scripts": {
-        "dev": "node webpack.config.js dev",
+        "dev": "node webpack.config.js dev --compress",
         "build": "node webpack.config.js build"
     }
 }
