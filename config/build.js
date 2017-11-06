@@ -15,6 +15,9 @@ const ExtractTextPlugin = require('extract-text-webpack-plugin')
     // 它将在Webpack构建期间搜索CSS资源, 将css文件最小化处理
 const OptimizeCSSPlugin = require('optimize-css-assets-webpack-plugin')
 module.exports = function(root) {
+    if (!root[1]) {
+        root[1] = '*';
+    }
     const baseWebpackConfig = require('./base')(root)
     const webpackConfig = merge(baseWebpackConfig, {
         module: {
@@ -234,7 +237,7 @@ module.exports = function(root) {
             new webpack.HashedModuleIdsPlugin(),
             // 复制静态资源,将static文件内的内容复制到指定文件夹
             new CopyWebpackPlugin([{
-                from: path.resolve(__dirname, '../src/' + root + '/assets'),
+                from: path.resolve(__dirname, '../src/' + root[0] + '/assets'),
                 to: path.resolve(baseWebpackConfig.output.path, 'assets'),
                 ignore: ['.*'] //忽视.*文件
             }]),
@@ -260,7 +263,8 @@ module.exports = function(root) {
     const spinner = ora('building for production...')
     spinner.start()
         // 删除已编译文件
-    rm(path.join(webpackConfig.output.path, 'assets'), err => {
+    let removePath;
+    rm(webpackConfig.output.path, err => {
         if (err) throw err
             //在删除完成的回调函数中开始编译
         webpack(webpackConfig, function(err, stats) {

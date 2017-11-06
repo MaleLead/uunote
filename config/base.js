@@ -3,10 +3,12 @@ const path = require('path')
 const webpack = require('webpack')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 module.exports = function(root) {
-    let assetsRoot = path.resolve(__dirname, '../dist/' + root);
+    let assetsRoot = path.resolve(__dirname, '../dist/' + root[0]);
     let publickPath = 'assets';
     let entries = require('./get-entries')(root);
     const htmls = require('./get-entries')(root, 'html')
+    console.log(entries);
+    console.log(htmls);
     const webpackConfig = {
         entry: entries,
         output: {
@@ -22,7 +24,9 @@ module.exports = function(root) {
             extensions: ['.js', '.vue', '.json'], //自动解析确定的拓展名,使导入模块时不带拓展名
             alias: { // 创建import或require的别名
                 'vue$': 'vue/dist/vue.esm.js',
-                '@': resolve('src'),
+                // '@': resolve('src'),
+                '@assets': resolve('src/' + root[0] + '/assets'),
+                '@components': resolve('src/' + root[0] + '/components')
             },
         },
         module: {

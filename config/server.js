@@ -9,13 +9,13 @@ const os = require('os')
 if (!process.env.NODE_ENV) {
     process.env.NODE_ENV = JSON.parse('"development"')
 }
-
 const opn = require('opn') //强制打开浏览器
 const express = require('express')
 const proxyMiddleware = require('http-proxy-middleware') //使用代理的中间件
 module.exports = function(root) {
-    const htmls = require('./get-entries')(root, 'html')
-
+    if (!root[1]) {
+        root[1] = '*';
+    }
     const baseWebpackConfig = require('./base')(root)
 
     Object.keys(baseWebpackConfig.entry).forEach(function(name) {
@@ -243,7 +243,14 @@ module.exports = function(root) {
         //3.当在编译过程中请求某个资源时，webpack-dev-server不会让这个请求失败，而是会一直阻塞它，直到webpack编译完毕
     const devMiddleware = require('webpack-dev-middleware')(compiler, {
             publicPath: webpackConfig.output.publicPath,
-            quiet: true
+            quiet: true,
+            stats: {
+                colors: true
+            },
+            // options for formating the statistics
+            reporter: null,
+            serverSideRender: false,
+            // Turn off the server-side rendering mode. See Server-Side Rendering part for more info.
         })
         //webpack-hot-middleware的作用就是实现浏览器的无刷新更新
     const hotMiddleware = require('webpack-hot-middleware')(compiler, {
@@ -251,10 +258,9 @@ module.exports = function(root) {
             heartbeat: 2000
         })
         //声明hotMiddleware无刷新更新的时机:html-webpack-plugin 的template更改之后
-        // 不开启默认是热重载，开启以后会是热刷新。
         // compiler.plugin('compilation', function(compilation) {
         //     compilation.plugin('html-webpack-plugin-after-emit', function(data, cb) {
-        //         hotMiddleware.publish({ action: 'reload' })
+        //         hotMiddleware.publish({ action: 'reload' }) // 关闭可实现vue文件热重载.
         //         cb()
         //     })
         // })
@@ -318,10 +324,17 @@ module.exports = function(root) {
             server = app.listen(port, function(err) {
                     if (err) {
                         // console.log(err)
-                        return
+                        return;
                     }
-                    var uri = getIP() + port + '/index/index.html'
-                    console.log('Listening at ' + uri + '\n')
+                    let IP = getIP()
+                    let moduleName;
+                    if (root[1] === '*') {
+                        moduleName = 'index';
+                    } else {
+                        moduleName = root[1];
+                    }
+                    var uri = IP + port + '/' + moduleName + '/' + moduleName + '.html';
+                    console.log('Project running at ' + IP + port + '\n')
                         // opn(uri)
                         // 满足条件则自动打开浏览器
                     if (autoOpenBrowser && process.env.NODE_ENV !== 'testing') {

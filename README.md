@@ -11,7 +11,7 @@ npm run dev
 
 npm run build
 ```
-注意：以上命令请在src目录project中运行
+注意：以上命令请在src目录Template中运行
 
 Why use?
 ---
@@ -29,7 +29,7 @@ Why use?
 - 优化babel编译后的代码性能
 - 加入代码自动补全,提高压缩和混淆
 - 共用一个node_modules
-
+- 新增调试模式，方便多模块联合调试
 
 
 MORE

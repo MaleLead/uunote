@@ -5,10 +5,13 @@ module.exports = function(root, name) {
     let entries = {},
         basename;
     name = name || 'js';
-    let path1 = path.join(__dirname, '..', 'src/' + root + '/views/*/*.' + name);
-    glob.sync(path1).forEach(entry => {
-        basename = path.basename(entry, path.extname(entry));
-        entries[basename] = entry;
+    root.forEach((item, index) => {
+        if (!index) return;
+        let path1 = path.join(__dirname, '..', 'src/' + root[0] + '/views/' + item + '/*.' + name);
+        glob.sync(path1).forEach(entry => {
+            basename = path.basename(entry, path.extname(entry));
+            entries[basename] = entry;
+        })
     })
     return entries;
 }
