@@ -6,7 +6,6 @@ Build Setup
 ---
 ```
 npm install
-
 ```
 在根目录执行安装命令
 
