@@ -7,6 +7,10 @@ Build Setup
 ```
 npm install
 
+```
+在根目录执行安装命令
+
+```
 npm run dev
 
 npm run build
